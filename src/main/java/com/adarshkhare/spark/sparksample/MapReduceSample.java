@@ -13,7 +13,8 @@ import scala.Tuple2;
 
 /**
  *
- * @author adkhare
+ * @author adkhare\
+ *    kk
  */
 public class MapReduceSample
 {
