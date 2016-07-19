@@ -16,6 +16,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.mllib.regression.LabeledPoint;
 import scala.Tuple2;
 
 
@@ -55,11 +56,12 @@ public class SparkHelloWorld
     private static void TryMultiClassClassifierSample(SparkConf conf)
     {
 
-        String path = "sample/data/sample_libsvm_data.txt";
+        String dataPath = "sample/data/sample_libsvm_data.txt";
+        String modelPath = "temp/testModel";
         MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));
-        JavaRDD<Tuple2<Object, Object>> result = classifier.DoMultiClassClassification(path);
-        SparkHelloWorld.waitForEnterKey("Press <Enter> to print evaluation metrics.");
-        classifier.PrintEvaluationMetrics(result);
+        JavaRDD<LabeledPoint> result = classifier.DoMultiClassClassification(dataPath, modelPath);
+        System.out.println("Printing evaluation metrics.");
+        classifier.PrintEvaluationMetrics(result,modelPath);
     }
 
     private static void TryMapReduceSample(SparkConf conf)
@@ -80,6 +82,7 @@ public class SparkHelloWorld
         //Override the logging levels
         Logger.getLogger("org").setLevel(Level.ERROR);
         Logger.getLogger("akka").setLevel(Level.ERROR);
+        Logger.getLogger("Remoting").setLevel(Level.ERROR);
         return conf;
     }
 

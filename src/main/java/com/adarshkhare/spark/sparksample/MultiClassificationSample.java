@@ -5,7 +5,7 @@
  */
 package com.adarshkhare.spark.sparksample;
 
-import java.util.List;
+import java.io.File;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.classification.SVMModel;
@@ -36,9 +36,10 @@ public class MultiClassificationSample
     /**
      *
      * @param dataPath
+     * @param modelPath
      * @return
      */
-    public JavaRDD<Tuple2<Object, Object>> DoMultiClassClassification(String dataPath)
+    public JavaRDD<LabeledPoint> DoMultiClassClassification(String dataPath, String modelPath)
     {
         JavaRDD<LabeledPoint> data = MLUtils.loadLibSVMFile(this.sparkContext, dataPath).toJavaRDD();
 
@@ -48,47 +49,62 @@ public class MultiClassificationSample
         JavaRDD<LabeledPoint> test = data.subtract(training);
 
         // Run training algorithm to build the model.
-        int numIterations = 100;
+        int numIterations = 5;
         this.model = SVMWithSGD.train(training.rdd(), numIterations);
 
         // Clear the default threshold.
-        model.clearThreshold();
-
-        // Compute raw scores on the test set.
-        JavaRDD<Tuple2<Object, Object>> scoreAndLabels = test.map((LabeledPoint p) ->
-        {
-            Double score = model.predict(p.features());
-            return new Tuple2<>(score, p.label());
-        });
-        
-        return scoreAndLabels;
-    }
-
-    /**
-     *
-     * @param path
-     * @return
-     */
-    public SVMModel SaveAndLoadModel(String path)
-    { 
+        model.clearThreshold(); 
         // Save and load model
-        this.model.save(this.sparkContext, path);
-        return SVMModel.load(this.sparkContext, path);
+        cleanModelDirectoryPathIfExists(new File(modelPath));
+        this.model.save(this.sparkContext, modelPath); 
+        System.out.println("saved model at = " + modelPath);
+        return test;
     }
 
     /**
      *
-     * @param scoreAndLabels
+     * @param testPoints
+     * @param modelPath
      */
-    public void PrintEvaluationMetrics(JavaRDD<Tuple2<Object, Object>> scoreAndLabels)
+    public void PrintEvaluationMetrics(JavaRDD<LabeledPoint> testPoints, String modelPath)
     {
-        // Get evaluation metrics.
-        BinaryClassificationMetrics metrics
-                = new BinaryClassificationMetrics(JavaRDD.toRDD(scoreAndLabels));
-        double auROC = metrics.areaUnderROC();
+        // Compute raw scores on the test set.
+        SVMModel evaluationModel = SVMModel.load(MultiClassificationSample.this.sparkContext, modelPath);
+        JavaRDD<Tuple2<Object, Object>> scoreAndLabels = testPoints.map((LabeledPoint p)
+                -> 
+                {
 
-        System.out.println("Area under ROC = " + auROC);
-
-       
+                    Double score = evaluationModel.predict(p.features());
+                    return new Tuple2<>(score, p.label());
+        });
+        if (scoreAndLabels != null)
+        {
+            // Get evaluation metrics.
+            BinaryClassificationMetrics metrics = new BinaryClassificationMetrics(JavaRDD.toRDD(scoreAndLabels));
+            double auROC = metrics.areaUnderROC();
+            System.out.println("Area under ROC = " + auROC);
+        } 
+        else
+        {
+            System.out.println(">> No Scores and Labels to evaluate Metrics");
+        }
+    }
+    static public boolean cleanModelDirectoryPathIfExists(File path)
+    {
+        if (path.exists())
+        {
+            for (File file : path.listFiles())
+            {
+                if (file.isDirectory())
+                {
+                    cleanModelDirectoryPathIfExists(file);
+                } 
+                else
+                {
+                    file.delete();
+                }
+            }
+        }
+        return (path.delete());
     }
 }
