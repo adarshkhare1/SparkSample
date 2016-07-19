@@ -23,6 +23,8 @@ public class MultiClassificationSample
 {
     private SVMModel model;
     private final SparkContext sparkContext;
+    JavaRDD<LabeledPoint> testData;
+    JavaRDD<LabeledPoint> trainingData;
     
     /**
      *
@@ -33,44 +35,41 @@ public class MultiClassificationSample
         sparkContext = context;
     }
     
+    public void SplitTestAndTrainingData(double percentDataForTraining, String dataPath)
+    {
+         JavaRDD<LabeledPoint> data = MLUtils.loadLibSVMFile(this.sparkContext, dataPath).toJavaRDD();
+        // Split initial RDD into two... [60% training data, 40% testing data].
+        trainingData = data.sample(false, percentDataForTraining, 11L);
+        trainingData.cache();
+        testData = data.subtract(trainingData);
+        testData.cache();
+    }
+    
     /**
      *
-     * @param dataPath
      * @param modelPath
-     * @return
      */
-    public JavaRDD<LabeledPoint> DoMultiClassClassification(String dataPath, String modelPath)
+    public void DoMultiClassClassification(int numIterations, String modelPath)
     {
-        JavaRDD<LabeledPoint> data = MLUtils.loadLibSVMFile(this.sparkContext, dataPath).toJavaRDD();
-
-        // Split initial RDD into two... [60% training data, 40% testing data].
-        JavaRDD<LabeledPoint> training = data.sample(false, 0.6, 11L);
-        training.cache();
-        JavaRDD<LabeledPoint> test = data.subtract(training);
-
         // Run training algorithm to build the model.
-        int numIterations = 5;
-        this.model = SVMWithSGD.train(training.rdd(), numIterations);
-
+        this.model = SVMWithSGD.train(trainingData.rdd(), numIterations);
         // Clear the default threshold.
         model.clearThreshold(); 
         // Save and load model
         cleanModelDirectoryPathIfExists(new File(modelPath));
         this.model.save(this.sparkContext, modelPath); 
         System.out.println("saved model at = " + modelPath);
-        return test;
     }
 
     /**
      *
-     * @param testPoints
      * @param modelPath
      */
-    public void PrintEvaluationMetrics(JavaRDD<LabeledPoint> testPoints, String modelPath)
+    public void PrintEvaluationMetrics(String modelPath)
     {
         // Compute raw scores on the test set.
         SVMModel evaluationModel = SVMModel.load(MultiClassificationSample.this.sparkContext, modelPath);
-        JavaRDD<Tuple2<Object, Object>> scoreAndLabels = testPoints.map((LabeledPoint p)
+        JavaRDD<Tuple2<Object, Object>> scoreAndLabels = testData.map((LabeledPoint p)
                 -> 
                 {
 
@@ -89,6 +88,12 @@ public class MultiClassificationSample
             System.out.println(">> No Scores and Labels to evaluate Metrics");
         }
     }
+
+    /**
+     *
+     * @param path
+     * @return
+     */
     static public boolean cleanModelDirectoryPathIfExists(File path)
     {
         if (path.exists())

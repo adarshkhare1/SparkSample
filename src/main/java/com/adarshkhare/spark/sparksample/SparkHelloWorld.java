@@ -59,9 +59,10 @@ public class SparkHelloWorld
         String dataPath = "sample/data/sample_libsvm_data.txt";
         String modelPath = "temp/testModel";
         MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));
-        JavaRDD<LabeledPoint> result = classifier.DoMultiClassClassification(dataPath, modelPath);
+        classifier.SplitTestAndTrainingData(0.2, dataPath);
+        classifier.DoMultiClassClassification(50, modelPath);
         System.out.println("Printing evaluation metrics.");
-        classifier.PrintEvaluationMetrics(result,modelPath);
+        classifier.PrintEvaluationMetrics(modelPath);
     }
 
     private static void TryMapReduceSample(SparkConf conf)
