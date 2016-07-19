@@ -6,6 +6,7 @@
 package com.adarshkhare.spark.sparksample;
 
 import java.util.Arrays;
+import java.util.List;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -17,14 +18,14 @@ import scala.Tuple2;
  */
 public class MapReduceSample
 {
-    public static JavaPairRDD<String, Integer> DoWordCount(JavaSparkContext sc, String inputFile)
+    public static List<Tuple2<String, Integer>> DoWordCount(JavaSparkContext sc, String inputFile)
     {
         // Load our input data.
         JavaRDD<String> input = sc.textFile(inputFile);
         JavaRDD<String> words = input.flatMap((String x) -> Arrays.asList(x.split(" ")));
         // Transform into word and count.
         JavaPairRDD<String, Integer> counts = words.mapToPair((String x) -> new Tuple2(x, 1));
-        counts.reduceByKey((Integer x, Integer y) -> x + y);
-        return counts;
+        counts = counts.reduceByKey((Integer x, Integer y) -> x + y);
+        return counts.collect();
     }
 }
