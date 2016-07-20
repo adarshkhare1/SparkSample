@@ -14,9 +14,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.mllib.regression.LabeledPoint;
 import scala.Tuple2;
 
 
@@ -55,7 +53,7 @@ public class SparkHelloWorld
 
     private static void TryMultiClassClassifierSample(SparkConf conf)
     {
-        EMailDataBuilder b = new EMailDataBuilder(false);
+        //EMailDataBuilder b = new EMailDataBuilder(false);
         String dataPath = "sample/data/sample_libsvm_data.txt";
         String modelPath = "temp/testModel";
         MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));
