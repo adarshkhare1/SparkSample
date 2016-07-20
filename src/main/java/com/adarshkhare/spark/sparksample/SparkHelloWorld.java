@@ -55,7 +55,7 @@ public class SparkHelloWorld
 
     private static void TryMultiClassClassifierSample(SparkConf conf)
     {
-        EMailDataBuilder b = new EMailDataBuilder();
+        EMailDataBuilder b = new EMailDataBuilder(false);
         String dataPath = "sample/data/sample_libsvm_data.txt";
         String modelPath = "temp/testModel";
         MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));

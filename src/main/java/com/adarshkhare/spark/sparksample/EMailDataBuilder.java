@@ -33,13 +33,17 @@ public class EMailDataBuilder
     
     /**
      *
+     * @param parseNewMessages
      */
-    public EMailDataBuilder()
+    public EMailDataBuilder(Boolean parseNewMessages)
     {
         vocabList = this.loadTerminollogyList("vocabulary.txt");
         classList = this.loadTerminollogyList("classes.txt");
         constString = this.loadDictionary("constantStrings.txt");
-        SplitMessages();
+        if(parseNewMessages)
+        {
+            SplitMessages();
+        }
     }
     
     /**
