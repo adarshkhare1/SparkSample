@@ -47,6 +47,7 @@ public class MultiClassificationSample
     
     /**
      *
+     * @param numIterations
      * @param modelPath
      */
     public void DoMultiClassClassification(int numIterations, String modelPath)
