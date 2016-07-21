@@ -3,9 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.adarshkhare.spark.sparksample;
+package com.adarshkhare.spark.algorithm;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.lang.StringUtils;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.mllib.classification.SVMModel;
@@ -19,7 +25,7 @@ import scala.Tuple2;
  *
  * @author adkhare
  */
-public class MultiClassificationSample
+public class MultiClassification
 {
     private SVMModel model;
     private final SparkContext sparkContext;
@@ -30,7 +36,7 @@ public class MultiClassificationSample
      *
      * @param context
      */
-    public MultiClassificationSample(SparkContext context)
+    public MultiClassification(SparkContext context)
     {
         sparkContext = context;
     }
@@ -48,18 +54,30 @@ public class MultiClassificationSample
     /**
      *
      * @param numIterations
-     * @param modelPath
+     * @param modelDir
+     * @return return the path where model is saved. Null if model is not successfully saved.
      */
-    public void DoMultiClassClassification(int numIterations, String modelPath)
+    public String DoMultiClassClassification(int numIterations, String modelDir)
     {
         // Run training algorithm to build the model.
         this.model = SVMWithSGD.train(trainingData.rdd(), numIterations);
         // Clear the default threshold.
-        model.clearThreshold(); 
+        model.clearThreshold();
         // Save and load model
-        cleanModelDirectoryPathIfExists(new File(modelPath));
-        this.model.save(this.sparkContext, modelPath); 
-        System.out.println("saved model at = " + modelPath);
+        String savePath = createModelDirectory(modelDir);
+        cleanModelDirectoryPathIfExists(new File(savePath));
+        if(!StringUtils.isEmpty(savePath))
+        {
+            this.model.save(this.sparkContext, savePath);
+            Logger.getLogger(MultiClassification.class.getName()).log(Level.INFO,
+                                                                      "saved model at = {0}", savePath);    
+        }
+        else
+        {
+            Logger.getLogger(MultiClassification.class.getName()).log(Level.WARNING,
+                                                                      "Could not save model.");
+        }
+        return savePath;
     }
 
     /**
@@ -69,11 +87,10 @@ public class MultiClassificationSample
     public void PrintEvaluationMetrics(String modelPath)
     {
         // Compute raw scores on the test set.
-        SVMModel evaluationModel = SVMModel.load(MultiClassificationSample.this.sparkContext, modelPath);
+        SVMModel evaluationModel = SVMModel.load(MultiClassification.this.sparkContext, modelPath);
         JavaRDD<Tuple2<Object, Object>> scoreAndLabels = testData.map((LabeledPoint p)
                 -> 
                 {
-
                     Double score = evaluationModel.predict(p.features());
                     return new Tuple2<>(score, p.label());
         });
@@ -82,14 +99,35 @@ public class MultiClassificationSample
             // Get evaluation metrics.
             BinaryClassificationMetrics metrics = new BinaryClassificationMetrics(JavaRDD.toRDD(scoreAndLabels));
             double auROC = metrics.areaUnderROC();
-            System.out.println("Area under ROC = " + auROC);
+            Logger.getLogger(MultiClassification.class.getName()).log(Level.INFO, 
+                                                                            "Area under ROC = {0}", auROC);
         } 
         else
         {
-            System.out.println(">> No Scores and Labels to evaluate Metrics");
+            Logger.getLogger(MultiClassification.class.getName()).log(Level.WARNING,
+                                                                            ">> No Scores and Labels to evaluate Metrics");
         }
     }
 
+    private String createModelDirectory(String directoryName)
+    {
+        try
+        {
+            File tempFile = File.createTempFile("my_prefix", "");
+            tempFile.delete();
+            String absolutePath = tempFile.getAbsolutePath();
+            String tempFilePath = absolutePath.
+    		    substring(0,absolutePath.lastIndexOf(File.separator));
+            Path modelDir = Paths.get(tempFilePath, directoryName);
+            return modelDir.toString();
+        } 
+        catch (IOException ex)
+        {
+            Logger.getLogger(MultiClassification.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+    
     /**
      *
      * @param path

@@ -5,7 +5,8 @@
  */
 package com.adarshkhare.spark.sparksample;
 
-import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
+import com.adarshkhare.spark.algorithm.MapReduce;
+import com.adarshkhare.spark.algorithm.MultiClassification;
 import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,7 +16,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
@@ -29,23 +29,14 @@ public class SparkHelloWorld
 
     public static void main(String[] args) throws Exception
     {
-        SparkConf conf = InitializeSpark();
+        SparkConf conf = InitializeSparkConf();
         try
         {
-            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1. Map Reduce, 2. Multi Class Classifier. 3. eMailVocab builder");
+            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1.eMailVocab builder");
             switch (selection)
             {
-                case "1":
-                    SparkHelloWorld.TryMapReduceSample(conf);
-                    break;
-                case "2":
-                    SparkHelloWorld.TryMultiClassClassifierSample(conf);
-                    break;
-                case "3":
-                    SparkHelloWorld.PopulateVocabulary(conf);
-                    break;
                 default:
-                    SparkHelloWorld.TryMapReduceSample(conf);
+                    SparkHelloWorld.PopulateVocabulary(conf);
                     break;
 
             }
@@ -55,41 +46,29 @@ public class SparkHelloWorld
             SparkHelloWorld.waitForEnterKey("Press <Enter> to teminate the program.");
         }
     }
-
-    private static void TryMultiClassClassifierSample(SparkConf conf)
-    {
-        String dataPath = "sample/data/sample_libsvm_data.txt";
-        String modelPath = "/temp/testModel";
-        MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));
-        classifier.SplitTestAndTrainingData(0.2, dataPath);
-        classifier.DoMultiClassClassification(50, modelPath);
-        System.out.println("Printing evaluation metrics.");
-        classifier.PrintEvaluationMetrics(modelPath);
-    }
     
     private static void PopulateVocabulary(SparkConf conf)
-    {
-        String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
-        VocabularyBuilder vb = new VocabularyBuilder();
-        List<Tuple2<String, Integer>> counts = MapReduceSample.DoWordCount(new JavaSparkContext(conf), inputFile);
-        counts.forEach((result) ->
+    { 
+        JavaSparkContext spark = new JavaSparkContext(conf);
+        try
         {
-            vb.addWordInVocabulary(result._1);
-        });
-        vb.SaveVocabulary();
+            String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
+            VocabularyBuilder vb = new VocabularyBuilder();
+            List<Tuple2<String, Integer>> counts = MapReduce.DoWordCount(spark, inputFile);
+            counts.forEach((result)
+                    -> 
+                    {
+                        vb.addWordInVocabulary(result._1);
+            });
+            vb.SaveVocabulary();
+        }
+        finally
+        {
+            spark.stop();
+        }
     }
 
-    private static void TryMapReduceSample(SparkConf conf)
-    {
-        String inputFile = "sample/data/mapreduce_data.txt";
-        List<Tuple2<String, Integer>> counts = MapReduceSample.DoWordCount(new JavaSparkContext(conf), inputFile);
-        counts.forEach((result) ->
-        {
-            System.out.println(result._1 + "=" + result._2);
-        }); //or pairRdd.collect()
-    }
-
-    private static SparkConf InitializeSpark()
+    private static SparkConf InitializeSparkConf()
     {
         // Create a Java Spark Context.
         SparkConf conf = new SparkConf().setAppName("Samples");
@@ -111,7 +90,7 @@ public class SparkHelloWorld
         } 
         catch (IOException ex)
         {
-            Logger.getLogger(SparkHelloWorld.class.getName()).log(Level.FATAL, null, ex);
+            Logger.getLogger("SparkSample").log(Level.FATAL, null, ex);
         }
         return StringUtils.EMPTY;
     }

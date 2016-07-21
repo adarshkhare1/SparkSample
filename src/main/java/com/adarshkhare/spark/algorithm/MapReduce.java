@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.adarshkhare.spark.sparksample;
+package com.adarshkhare.spark.algorithm;
 
 import java.util.Arrays;
 import java.util.List;
@@ -16,13 +16,22 @@ import scala.Tuple2;
  *
  * @author adkhare
  */
-public class MapReduceSample
+public class MapReduce
 {
+
+    /**
+     *
+     * @param sc
+     * @param inputFile
+     * @return
+     */
     public static List<Tuple2<String, Integer>> DoWordCount(JavaSparkContext sc, String inputFile)
     {
         // Load our input data.
         JavaRDD<String> input = sc.textFile(inputFile);
-        JavaRDD<String> words = input.flatMap((String x) -> Arrays.asList(x.split(" ")));
+        
+        JavaRDD<String> words;
+        words = input.flatMap((String x) -> Arrays.asList(x.split("[\\p{Punct}\\s]+")));
         // Transform into word and count.
         JavaPairRDD<String, Integer> counts = words.mapToPair((String x) -> new Tuple2(x, 1));
         counts = counts.reduceByKey((Integer x, Integer y) -> x + y);
