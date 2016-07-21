@@ -5,6 +5,8 @@
  */
 package com.adarshkhare.spark.sparksample;
 
+import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
+import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,17 +32,20 @@ public class SparkHelloWorld
         SparkConf conf = InitializeSpark();
         try
         {
-            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1. Map Reduce, 2. Multi Class Classifier.");
+            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1. Map Reduce, 2. Multi Class Classifier. 3. eMailVocab builder");
             switch (selection)
             {
                 case "1":
-                    TryMapReduceSample(conf);
+                    SparkHelloWorld.TryMapReduceSample(conf);
                     break;
                 case "2":
-                    TryMultiClassClassifierSample(conf);
+                    SparkHelloWorld.TryMultiClassClassifierSample(conf);
+                    break;
+                case "3":
+                    SparkHelloWorld.PopulateVocabulary(conf);
                     break;
                 default:
-                    TryMultiClassClassifierSample(conf);
+                    SparkHelloWorld.TryMapReduceSample(conf);
                     break;
 
             }
@@ -53,14 +58,25 @@ public class SparkHelloWorld
 
     private static void TryMultiClassClassifierSample(SparkConf conf)
     {
-        //EMailDataBuilder b = new EMailDataBuilder(false);
         String dataPath = "sample/data/sample_libsvm_data.txt";
-        String modelPath = "temp/testModel";
+        String modelPath = "/temp/testModel";
         MultiClassificationSample classifier = new MultiClassificationSample(new SparkContext(conf));
         classifier.SplitTestAndTrainingData(0.2, dataPath);
         classifier.DoMultiClassClassification(50, modelPath);
         System.out.println("Printing evaluation metrics.");
         classifier.PrintEvaluationMetrics(modelPath);
+    }
+    
+    private static void PopulateVocabulary(SparkConf conf)
+    {
+        String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
+        VocabularyBuilder vb = new VocabularyBuilder();
+        List<Tuple2<String, Integer>> counts = MapReduceSample.DoWordCount(new JavaSparkContext(conf), inputFile);
+        counts.forEach((result) ->
+        {
+            vb.addWordInVocabulary(result._1);
+        });
+        vb.SaveVocabulary();
     }
 
     private static void TryMapReduceSample(SparkConf conf)
