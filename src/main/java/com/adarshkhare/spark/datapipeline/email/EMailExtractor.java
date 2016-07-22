@@ -11,10 +11,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang3.StringUtils;
+import scala.Tuple2;
 
 /**
  *
@@ -22,27 +26,30 @@ import java.util.logging.Logger;
  */
 public class EMailExtractor
 {
-    private static final String DATA_ROOT = "C:/Adarsh/eMailData";
-    
+
+    public static final String DATA_ROOT = "C:/Adarsh/eMailData";
+
     private final Map<String, String> constString;
-    
+    private final VocabularyBuilder vb;
+
+    /**
+     *
+     */
+    public EMailExtractor()
+    {
+        constString = this.loadDictionary("constantStrings.txt");
+        vb = new VocabularyBuilder();
+    }
     
     /**
      *
-     * @param parseNewMessages
+     * @param messageFilePath
      */
-    public EMailExtractor(Boolean parseNewMessages)
+    public void ParseMessages(String messageFilePath)
     {
-        constString = this.loadDictionary("constantStrings.txt");
-        if(parseNewMessages)
-        {
-            SplitMessages();
-        }
-        
+        this.SplitMessages(messageFilePath);
     }
-    
-    
-    
+
     private Map<String, String> loadDictionary(String fileName)
     {
         Map<String, String> dict = new HashMap<>();
@@ -55,33 +62,26 @@ public class EMailExtractor
                 dict.put(split[0], split[1]);
             }
             // line is not visible here.
-        } catch (IOException ex)
+        } 
+        catch (IOException ex)
         {
             Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
         }
         return dict;
     }
+
+   
     
-    /**
-     *
-     * @param fileName
-     * @return
-     */
-    public static File getFile(String fileName)
+    private void SplitMessages(String messageFilePath)
     {
-        File file1 = new File(DATA_ROOT);
-        File file2 = new File(file1, fileName);
-        return file2;
-    }
-
-    private void SplitMessages()
-    {
-        File file = getFile("eMailSamples/eMails.txt");
+        File file = getFile(messageFilePath);
         int msgCount = 0;
-
+       
         try (BufferedReader br = new BufferedReader(new FileReader(file)))
         {
             BufferedWriter bw = null;
+            File msgFile = null;
+            List<Tuple2<Integer, Integer>> msgMap = new ArrayList<>();
             for (String line; (line = br.readLine()) != null;)
             {
                 if (line.equals(constString.get("senderLine")))
@@ -91,17 +91,27 @@ public class EMailExtractor
                         bw.close();
                     }
                     msgCount++;
-                    File outFile = getFile("eMailSamples/" + msgCount + ".txt");
-                    bw = new BufferedWriter(new FileWriter(outFile));
+                    msgFile = getMsgOutputFile(msgCount);
+                    bw = new BufferedWriter(new FileWriter(msgFile));
                 }
                 if (bw != null)
                 {
-                    bw.write(line+"\r\n");
+                    bw.write(line + "\r\n");
                 }
             }
             if (bw != null)
             {
                 bw.close();
+                if (msgFile != null)
+                {
+                    msgMap = vb.getDataMapForMessage(msgFile.getAbsolutePath());
+                    StringBuilder messageData = new StringBuilder();
+                    msgMap.stream().forEach((result)-> {
+                        messageData.append(result._1).append(":").append(result._2).append(" ");
+                    });
+                    Logger.getLogger(EMailExtractor.class.getName()).log(Level.INFO, messageData.toString());
+                    
+                }
             }
             // line is not visible here.
         } catch (IOException ex)
@@ -110,6 +120,23 @@ public class EMailExtractor
         }
     }
 
-   
+    private static File getMsgOutputFile(int msgCount)
+    {
+        String msgFilePath = "eMailSamples/" + msgCount + "/" + msgCount + ".txt";
+        File file1 = new File(EMailExtractor.DATA_ROOT);
+        File msgFile = new File(file1, msgFilePath);
+        return msgFile;
+    }
     
+     /**
+     *
+     * @param fileName
+     * @return
+     */
+    private static File getFile(String fileName)
+    {
+        File file1 = new File(EMailExtractor.DATA_ROOT);
+        File file2 = new File(file1, fileName);
+        return file2;
+    }
 }

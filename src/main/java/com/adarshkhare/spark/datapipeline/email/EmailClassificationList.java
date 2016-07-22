@@ -5,7 +5,7 @@
  */
 package com.adarshkhare.spark.datapipeline.email;
 
-import static com.adarshkhare.spark.datapipeline.email.EMailExtractor.getFile;
+import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -57,5 +57,17 @@ public class EmailClassificationList
             Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
         }
         return termList;
+    }
+    
+     /**
+     *
+     * @param fileName
+     * @return
+     */
+    private static File getFile(String fileName)
+    {
+        File file1 = new File(EMailExtractor.DATA_ROOT);
+        File file2 = new File(file1, fileName);
+        return file2;
     }
 }

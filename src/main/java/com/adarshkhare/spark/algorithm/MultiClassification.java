@@ -32,13 +32,9 @@ public class MultiClassification
     JavaRDD<LabeledPoint> testData;
     JavaRDD<LabeledPoint> trainingData;
     
-    /**
-     *
-     * @param context
-     */
-    public MultiClassification(SparkContext context)
+    public MultiClassification()
     {
-        sparkContext = context;
+        sparkContext = new SparkContext(SparkInitalizer.InitializeSparkConf(MultiClassification.class.getName()));
     }
     
     public void SplitTestAndTrainingData(double percentDataForTraining, String dataPath)
@@ -108,6 +104,14 @@ public class MultiClassification
                                                                             ">> No Scores and Labels to evaluate Metrics");
         }
     }
+    
+    public void ShutDown()
+    {
+        if(this.sparkContext != null)
+        {
+            this.sparkContext.stop();
+        }
+    }
 
     private String createModelDirectory(String directoryName)
     {
@@ -133,7 +137,7 @@ public class MultiClassification
      * @param path
      * @return
      */
-    static public boolean cleanModelDirectoryPathIfExists(File path)
+    static private boolean cleanModelDirectoryPathIfExists(File path)
     {
         if (path.exists())
         {

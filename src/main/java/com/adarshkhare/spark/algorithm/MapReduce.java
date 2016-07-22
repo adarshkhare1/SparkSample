@@ -7,6 +7,7 @@ package com.adarshkhare.spark.algorithm;
 
 import java.util.Arrays;
 import java.util.List;
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -21,20 +22,27 @@ public class MapReduce
 
     /**
      *
-     * @param sc
      * @param inputFile
      * @return
      */
-    public static List<Tuple2<String, Integer>> DoWordCount(JavaSparkContext sc, String inputFile)
+    public static List<Tuple2<String, Integer>> DoWordCount(String inputFile)
     {
-        // Load our input data.
-        JavaRDD<String> input = sc.textFile(inputFile);
-        
-        JavaRDD<String> words;
-        words = input.flatMap((String x) -> Arrays.asList(x.split("[\\p{Punct}\\s]+")));
-        // Transform into word and count.
-        JavaPairRDD<String, Integer> counts = words.mapToPair((String x) -> new Tuple2(x, 1));
-        counts = counts.reduceByKey((Integer x, Integer y) -> x + y);
-        return counts.collect();
+        SparkConf conf = SparkInitalizer.InitializeSparkConf(MapReduce.class.getName());
+        JavaSparkContext spark = new JavaSparkContext(conf);
+        try
+        {
+            // Load our input data.
+            JavaRDD<String> input = spark.textFile(inputFile);
+
+            JavaRDD<String> words;
+            words = input.flatMap((String x) -> Arrays.asList(x.split("[\\p{Punct}\\s]+")));
+            // Transform into word and count.
+            JavaPairRDD<String, Integer> counts = words.mapToPair((String x) -> new Tuple2(x, 1));
+            counts = counts.reduceByKey((Integer x, Integer y) -> x + y);
+            return counts.collect();
+        } finally
+        {
+            spark.stop();
+        }
     }
 }

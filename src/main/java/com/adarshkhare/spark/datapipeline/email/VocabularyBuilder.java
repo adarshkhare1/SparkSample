@@ -5,15 +5,19 @@
  */
 package com.adarshkhare.spark.datapipeline.email;
 
+import com.adarshkhare.spark.algorithm.MapReduce;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import scala.Tuple2;
 
 /**
  *
@@ -40,12 +44,20 @@ public class VocabularyBuilder
         vocabMap = this.loadExistingVocabulary();
     }
     
+    public List<Tuple2<Integer, Integer>> getDataMapForMessage(String msgFile)
+    {
+        List<Tuple2<String, Integer>> counts = MapReduce.DoWordCount(msgFile);
+        List<Tuple2<Integer, Integer>> wordMap = new ArrayList<>();
+        counts.stream().forEach((result)-> {wordMap.add(new Tuple2<>(this.getWordId(result._1), result._2));});
+        return wordMap;
+
+    }
     /**
      * Add a new word in vocabulary if it is not already exist.
      * @param word
      * @return 0 if word already exist else return newly generated wordId.
      */
-    public int addWordInVocabulary(String word)
+    private int getWordId(String word)
     {
         if(!vocabMap.containsKey(word))
         {
@@ -53,7 +65,10 @@ public class VocabularyBuilder
             this.vocabMap.put(word, maxWordId);
             return this.maxWordId;
         }
-        return 0;
+        else
+        {
+            return vocabMap.get(word);
+        }
     }
     
     /**
@@ -98,7 +113,7 @@ public class VocabularyBuilder
                     "Vocabulary loaded with existing word count = {0}", tempWordMap.size());
         } catch (IOException | ClassNotFoundException ex)
         {
-            Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO, null, ex);
         }
         return tempWordMap;
     }

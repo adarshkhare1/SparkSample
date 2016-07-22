@@ -5,8 +5,7 @@
  */
 package com.adarshkhare.spark.sparksample;
 
-import com.adarshkhare.spark.algorithm.MapReduce;
-import com.adarshkhare.spark.algorithm.MultiClassification;
+import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
 import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,8 +14,6 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
 
@@ -29,56 +26,51 @@ public class SparkHelloWorld
 
     public static void main(String[] args) throws Exception
     {
-        SparkConf conf = InitializeSparkConf();
         try
         {
-            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1.eMailVocab builder");
+            String selection = SparkHelloWorld.waitForEnterKey("Select Sample 1.parseMessages 2.buildVoab");
             switch (selection)
             {
-                default:
-                    SparkHelloWorld.PopulateVocabulary(conf);
+                case "1":
+                    SparkHelloWorld.convertMessageFileToDataRecords();
                     break;
-
+                case "2":
+                    SparkHelloWorld.PopulateVocabulary();
+                    break;
+                default:
+                    SparkHelloWorld.PopulateVocabulary();
+                    break;
             }
 
-        } finally
+        } 
+        finally
         {
             SparkHelloWorld.waitForEnterKey("Press <Enter> to teminate the program.");
         }
     }
     
-    private static void PopulateVocabulary(SparkConf conf)
-    { 
-        JavaSparkContext spark = new JavaSparkContext(conf);
-        try
-        {
-            String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
-            VocabularyBuilder vb = new VocabularyBuilder();
-            List<Tuple2<String, Integer>> counts = MapReduce.DoWordCount(spark, inputFile);
-            counts.forEach((result)
-                    -> 
-                    {
-                        vb.addWordInVocabulary(result._1);
-            });
-            vb.SaveVocabulary();
-        }
-        finally
-        {
-            spark.stop();
-        }
+    private static void convertMessageFileToDataRecords()
+    {
+        String messageFilePath = "eMailSamples/eMails.txt";
+        EMailExtractor emExtractor = new EMailExtractor();
+        emExtractor.ParseMessages(messageFilePath);
+        
+    }
+    
+    private static void PopulateVocabulary()
+    {
+        String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
+        VocabularyBuilder vb = new VocabularyBuilder();
+        List<Tuple2<Integer, Integer>> counts = vb.getDataMapForMessage(inputFile);
+        counts.forEach((result)
+                -> 
+                {
+                     System.out.println(result._1 +":"+result._2);
+        });
+        vb.SaveVocabulary();
     }
 
-    private static SparkConf InitializeSparkConf()
-    {
-        // Create a Java Spark Context.
-        SparkConf conf = new SparkConf().setAppName("Samples");
-        conf.setMaster("local");
-        //Override the logging levels
-        Logger.getLogger("org").setLevel(Level.ERROR);
-        Logger.getLogger("akka").setLevel(Level.ERROR);
-        Logger.getLogger("Remoting").setLevel(Level.ERROR);
-        return conf;
-    }
+   
 
     private static String waitForEnterKey(String promptMessage)
     {

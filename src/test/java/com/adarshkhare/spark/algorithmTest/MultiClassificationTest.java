@@ -6,12 +6,7 @@
 package com.adarshkhare.spark.algorithmTest;
 
 import com.adarshkhare.spark.algorithm.MultiClassification;
-import org.apache.spark.SparkContext;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import static org.junit.Assert.*;
 
 /**
@@ -51,14 +46,13 @@ public class MultiClassificationTest
     @Test
     public void testDoMultiClassClassification()
     {
-        SparkContext spark = new SparkContext(TestHelper.InitializeSparkConf("MultiClassificationTest"));
         System.out.println("DoMultiClassClassification");
+        MultiClassification instance = new MultiClassification();
         try
         {
             int numIterations = 10;
             String dataPath = "sample/data/sample_libsvm_data.txt";
             String modelDir = "testModel";
-            MultiClassification instance = new MultiClassification(spark);
             instance.SplitTestAndTrainingData(0.2, dataPath);
             String savePath = instance.DoMultiClassClassification(numIterations, modelDir);
             assertNotNull(savePath);
@@ -66,7 +60,7 @@ public class MultiClassificationTest
         } 
         finally
         {
-            spark.stop();
+            instance.ShutDown();
         }
     }
 }
