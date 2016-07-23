@@ -13,8 +13,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import scala.Tuple2;
@@ -25,10 +27,11 @@ import scala.Tuple2;
  */
 public class EMailExtractor
 {
-
-    public static final String DATA_ROOT = "/Adarsh/eMailData";
-    public static final String VOCAB_ROOT = "/Adarsh/SparkSample/sample/vocabulary";
-    public static final String MESSAGE_DIR_ROOT = "/Adarsh/eMailData/eMailSamples/messages/";
+    public static final String MASTER_DATA_ROOT = "/Users/adkhare";
+    public static final String DATA_ROOT = MASTER_DATA_ROOT+"/Adarsh/eMailData";
+    public static final String MESSAGE_DIR_ROOT = MASTER_DATA_ROOT+"/Adarsh/eMailData/eMailSamples/messages/";
+    public static final String VOCAB_ROOT = "sample/vocabulary";
+    
 
     private final Map<String, String> constString;
     private final VocabularyBuilder vb;
@@ -72,8 +75,6 @@ public class EMailExtractor
         return dict;
     }
 
-   
-    
     private void SplitMessages(String messageFilePath)
     {
         File file = getDataFile(messageFilePath);

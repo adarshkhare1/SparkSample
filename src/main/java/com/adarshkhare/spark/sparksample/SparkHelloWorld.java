@@ -61,13 +61,14 @@ public class SparkHelloWorld
     {
         String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
         VocabularyBuilder vb = new VocabularyBuilder();
+        vb.PrintVocabulary();
         List<Tuple2<Integer, Integer>> counts = vb.getDataMapForMessage(inputFile);
         counts.forEach((result)
                 -> 
                 {
                      System.out.println(result._1 +":"+result._2);
         });
-        vb.SaveVocabulary();
+        //vb.SaveVocabulary();
     }
 
    

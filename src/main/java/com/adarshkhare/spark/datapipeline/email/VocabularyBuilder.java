@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang.math.NumberUtils;
 import scala.Tuple2;
 
 /**
@@ -40,7 +41,7 @@ public class VocabularyBuilder
     private final Set<String> ignoreWordSet;
     private int maxWordId = 0;
     
-    private final String vocabFileName = "/Adarsh/eMailData/vocabulary.txt";
+    private final String vocabFileName = EMailExtractor.MASTER_DATA_ROOT+"/Adarsh/eMailData/vocabulary.txt";
 
     /**
      * WordId = 0 for ignorable words.
@@ -72,7 +73,8 @@ public class VocabularyBuilder
     private int getWordId(String word)
     {
         String normalizedWord = word.toLowerCase();
-        if (!this.ignoreWordSet.contains(normalizedWord))
+        if (!this.ignoreWordSet.contains(normalizedWord) 
+                && !NumberUtils.isNumber(normalizedWord))
         {
             if (!vocabMap.containsKey(normalizedWord))
             {
@@ -94,7 +96,7 @@ public class VocabularyBuilder
     public void PrintVocabulary()
     {
         System.out.println("Printing Vocab");
-        this.vocabMap.values().stream().forEach(System.out::println);
+        this.vocabMap.keySet().stream().forEach(System.out::println);
     }
     
     /**
