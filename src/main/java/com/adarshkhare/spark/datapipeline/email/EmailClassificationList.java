@@ -5,7 +5,6 @@
  */
 package com.adarshkhare.spark.datapipeline.email;
 
-import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;

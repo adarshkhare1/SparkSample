@@ -19,7 +19,7 @@ import scala.Tuple2;
  */
 public class MapReduce
 {
-
+    private static final String MESSAGE_FILTER="(From:.*|Sent:.*|To:.*|Subject:.*|ScratchShipmentGroupId.*|https:.*)";
     /**
      *
      * @param inputFile
@@ -32,7 +32,12 @@ public class MapReduce
         try
         {
             // Load our input data.
-            JavaRDD<String> input = spark.textFile(inputFile);
+            JavaRDD<String> input;
+            input = spark.textFile(inputFile).filter((String v1) -> 
+            {
+                return !v1.matches(MESSAGE_FILTER);
+            } 
+            );
 
             JavaRDD<String> words;
             words = input.flatMap((String x) -> Arrays.asList(x.split("[\\p{Punct}\\s]+")));
