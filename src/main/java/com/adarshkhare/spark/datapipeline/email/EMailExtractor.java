@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang3.StringUtils;
 import scala.Tuple2;
 
 /**
@@ -27,7 +26,9 @@ import scala.Tuple2;
 public class EMailExtractor
 {
 
-    public static final String DATA_ROOT = "C:/Adarsh/eMailData";
+    public static final String DATA_ROOT = "/Adarsh/eMailData";
+    public static final String VOCAB_ROOT = "/Adarsh/SparkSample/sample/vocabulary";
+    public static final String MESSAGE_DIR_ROOT = "/Adarsh/eMailData/eMailSamples/messages/";
 
     private final Map<String, String> constString;
     private final VocabularyBuilder vb;
@@ -48,12 +49,13 @@ public class EMailExtractor
     public void ParseMessages(String messageFilePath)
     {
         this.SplitMessages(messageFilePath);
+        vb.SaveVocabulary(); // save the updated vocabulary.
     }
 
     private Map<String, String> loadDictionary(String fileName)
     {
         Map<String, String> dict = new HashMap<>();
-        File file = getFile(fileName);
+        File file = getDataFile(fileName);
         try (BufferedReader br = new BufferedReader(new FileReader(file)))
         {
             for (String line; (line = br.readLine()) != null;)
@@ -74,13 +76,13 @@ public class EMailExtractor
     
     private void SplitMessages(String messageFilePath)
     {
-        File file = getFile(messageFilePath);
+        File file = getDataFile(messageFilePath);
         int msgCount = 0;
        
         try (BufferedReader br = new BufferedReader(new FileReader(file)))
         {
             BufferedWriter bw = null;
-            File msgFile = null;
+            File msgFile;
             List<Tuple2<Integer, Integer>> msgMap = new ArrayList<>();
             for (String line; (line = br.readLine()) != null;)
             {
@@ -89,10 +91,14 @@ public class EMailExtractor
                     if (bw != null)
                     {
                         bw.close();
+                        SaveMessageAsData(msgCount);
                     }
                     msgCount++;
                     msgFile = getMsgOutputFile(msgCount);
-                    bw = new BufferedWriter(new FileWriter(msgFile));
+                    if (msgFile != null)
+                    {
+                        bw = new BufferedWriter(new FileWriter(msgFile));
+                    }
                 }
                 if (bw != null)
                 {
@@ -102,16 +108,7 @@ public class EMailExtractor
             if (bw != null)
             {
                 bw.close();
-                if (msgFile != null)
-                {
-                    msgMap = vb.getDataMapForMessage(msgFile.getAbsolutePath());
-                    StringBuilder messageData = new StringBuilder();
-                    msgMap.stream().forEach((result)-> {
-                        messageData.append(result._1).append(":").append(result._2).append(" ");
-                    });
-                    Logger.getLogger(EMailExtractor.class.getName()).log(Level.INFO, messageData.toString());
-                    
-                }
+                SaveMessageAsData(msgCount);
             }
             // line is not visible here.
         } catch (IOException ex)
@@ -120,12 +117,57 @@ public class EMailExtractor
         }
     }
 
-    private static File getMsgOutputFile(int msgCount)
+    private void SaveMessageAsData(int msgCount)
     {
-        String msgFilePath = "eMailSamples/" + msgCount + "/" + msgCount + ".txt";
-        File file1 = new File(EMailExtractor.DATA_ROOT);
-        File msgFile = new File(file1, msgFilePath);
-        return msgFile;
+        File msgFile = getMsgOutputFile(msgCount);
+        if (msgFile.exists())
+        {
+            Logger.getLogger(EMailExtractor.class.getName()).log(Level.FINEST, "{0}..", msgCount);
+            BufferedWriter bw;
+            try
+            {
+                List<Tuple2<Integer, Integer>> msgMap;
+                msgMap = vb.getDataMapForMessage(msgFile.getAbsolutePath());
+                StringBuilder messageData = new StringBuilder();
+                msgMap.stream().forEach((result)
+                        -> 
+                        {
+                            if (result._1 != VocabularyBuilder.IGNORE_WORD_ID)
+                            {
+                                messageData.append(result._1).append(":").append(result._2).append(" ");
+                            }
+                });
+                File msgDir = new File(MESSAGE_DIR_ROOT, msgCount + "/");
+                File recordFile = new File(msgDir,  "dataRecord.txt");
+                bw = new BufferedWriter(new FileWriter(recordFile));
+                bw.write(messageData.toString());
+                bw.close();
+            } 
+            catch (IOException ex)
+            {
+                Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    private static File getMsgOutputFile(int msgCount)
+    {        
+        File msgDir = new File(MESSAGE_DIR_ROOT, msgCount+"/");
+        if (!msgDir.exists())
+        {
+            msgDir.mkdir();
+        }
+        if (msgDir.exists())
+        {
+            File msgFile = new File(msgDir, msgCount + ".txt");
+            return msgFile;
+        } 
+        else
+        {
+            Logger.getLogger(EMailExtractor.class.getName()).log(Level.WARNING, 
+                    "Failed to create directory {0} to save message ", msgDir.getAbsolutePath());
+            return null;
+        }
     }
     
      /**
@@ -133,7 +175,7 @@ public class EMailExtractor
      * @param fileName
      * @return
      */
-    private static File getFile(String fileName)
+    private static File getDataFile(String fileName)
     {
         File file1 = new File(EMailExtractor.DATA_ROOT);
         File file2 = new File(file1, fileName);

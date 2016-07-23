@@ -1,0 +1,7 @@
+0:Unknown
+1:Pricing
+2:LabelPrinting
+3:Tracking
+4:Latency
+5:Bug
+6:Suggestion

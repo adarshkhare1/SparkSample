@@ -66,7 +66,7 @@ public class EmailClassificationList
      */
     private static File getFile(String fileName)
     {
-        File file1 = new File(EMailExtractor.DATA_ROOT);
+        File file1 = new File(EMailExtractor.VOCAB_ROOT);
         File file2 = new File(file1, fileName);
         return file2;
     }

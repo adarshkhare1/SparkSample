@@ -6,15 +6,20 @@
 package com.adarshkhare.spark.datapipeline.email;
 
 import com.adarshkhare.spark.algorithm.MapReduce;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import scala.Tuple2;
@@ -32,9 +37,15 @@ public class VocabularyBuilder
     }
     
     private final Map<String, Integer> vocabMap;
+    private final Set<String> ignoreWordSet;
     private int maxWordId = 0;
     
     private final String vocabFileName = "/Adarsh/eMailData/vocabulary.txt";
+
+    /**
+     * WordId = 0 for ignorable words.
+     */
+    public static final int IGNORE_WORD_ID = 0;
 
     /**
      *
@@ -42,6 +53,7 @@ public class VocabularyBuilder
     public VocabularyBuilder()
     {
         vocabMap = this.loadExistingVocabulary();
+        ignoreWordSet = this.LoadIgnoreWordList();
     }
     
     public List<Tuple2<Integer, Integer>> getDataMapForMessage(String msgFile)
@@ -59,22 +71,27 @@ public class VocabularyBuilder
      */
     private int getWordId(String word)
     {
-        if(!vocabMap.containsKey(word))
+        String normalizedWord = word.toLowerCase();
+        if (!this.ignoreWordSet.contains(normalizedWord))
         {
-            this.maxWordId++;
-            this.vocabMap.put(word, maxWordId);
-            return this.maxWordId;
+            if (!vocabMap.containsKey(normalizedWord))
+            {
+                this.maxWordId++;
+                this.vocabMap.put(normalizedWord, maxWordId);
+                return this.maxWordId;
+            } 
+            else
+            {
+                return vocabMap.get(normalizedWord);
+            }
         }
-        else
-        {
-            return vocabMap.get(word);
-        }
+        return VocabularyBuilder.IGNORE_WORD_ID;
     }
     
     /**
      *
      */
-    public void PrintLists()
+    public void PrintVocabulary()
     {
         System.out.println("Printing Vocab");
         this.vocabMap.values().stream().forEach(System.out::println);
@@ -100,17 +117,40 @@ public class VocabularyBuilder
         }
     }
     
+    private Set<String> LoadIgnoreWordList()
+    {
+        Set<String> termList = new HashSet<>();
+        File file1 = new File(EMailExtractor.VOCAB_ROOT);
+        File file = new File(file1, "IgnoreWordList.txt");
+        try (BufferedReader br = new BufferedReader(new FileReader(file)))
+        {
+            for (String line; (line = br.readLine()) != null;)
+            {
+                termList.add(line);
+            }
+            // line is not visible here.
+        } catch (IOException ex)
+        {
+            Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return termList;
+    }
+    
     private Map<String, Integer> loadExistingVocabulary()
     {
         Map<String, Integer> tempWordMap = new HashMap<>();
         try
         {
-            try (FileInputStream fis = new FileInputStream(vocabFileName); ObjectInputStream ois = new ObjectInputStream(fis))
+            File vocabFile = new File(vocabFileName);
+            if (vocabFile.exists())
             {
-                tempWordMap = (HashMap) ois.readObject();
+                try (FileInputStream fis = new FileInputStream(vocabFileName); ObjectInputStream ois = new ObjectInputStream(fis))
+                {
+                    tempWordMap = (HashMap) ois.readObject();
+                }
+                Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO,
+                        "Vocabulary loaded with existing word count = {0}", tempWordMap.size());
             }
-            Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO, 
-                    "Vocabulary loaded with existing word count = {0}", tempWordMap.size());
         } catch (IOException | ClassNotFoundException ex)
         {
             Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO, null, ex);
