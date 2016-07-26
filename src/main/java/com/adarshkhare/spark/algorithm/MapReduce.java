@@ -11,7 +11,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
 import scala.Tuple2;
 
 /**
@@ -20,7 +19,7 @@ import scala.Tuple2;
  */
 public class MapReduce
 {
-    private static final String MESSAGE_FILTER="(From:.*|Sent:.*|To:.*|Subject:.*|ScratchShipmentGroupId.*|https:.*)";
+    private static final String MESSAGE_FILTER="(From:.*|Sent:.*|To:.*|Subject:.*|ScratchShipmentGroupId.*|https:.*|Message:.*)";
     /**
      *
      * @param inputFile
