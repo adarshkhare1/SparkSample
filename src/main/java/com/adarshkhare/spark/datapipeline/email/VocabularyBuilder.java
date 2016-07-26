@@ -74,9 +74,12 @@ public class VocabularyBuilder
     {
         if (StringUtils.isNotEmpty(word))
         {
-            String normalizedWord = word.toLowerCase();
-            if (StringUtils.isAlpha(word)
-                    && !this.ignoreWordSet.contains(normalizedWord))
+            String normalizedWord = word.toLowerCase().trim();
+            if (StringUtils.isNotEmpty(word)
+                    && normalizedWord.length() > 2
+                    && StringUtils.isAlpha(word)
+                    && !this.ignoreWordSet.contains(normalizedWord)
+                    )
             {
                 if (!vocabMap.containsKey(normalizedWord))
                 {
@@ -98,7 +101,11 @@ public class VocabularyBuilder
     public void PrintVocabulary()
     {
         System.out.println("Printing Vocab");
-        this.vocabMap.keySet().stream().forEach(System.out::println);
+        this.vocabMap.keySet().stream().sorted().forEach((String k)
+                -> 
+                {
+                    System.out.println(k + "," + this.vocabMap.get(k));
+        });
     }
     
     /**

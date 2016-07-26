@@ -35,7 +35,7 @@ public class MapReduce
             JavaRDD<String> input;
             input = spark.textFile(inputFile).filter((String v1) -> 
             {
-                return !v1.matches(MESSAGE_FILTER);
+                return !v1.trim().matches(MESSAGE_FILTER);
             } 
             );
 
