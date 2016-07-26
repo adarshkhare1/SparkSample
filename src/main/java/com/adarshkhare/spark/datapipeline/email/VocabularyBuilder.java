@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,22 +32,18 @@ import scala.Tuple2;
  */
 public class VocabularyBuilder
 {
-    public class VocabularyWord
-    {
-        public String word;
-        public int Id;
-    }
-    
     private final Map<String, Integer> vocabMap;
     private final Set<String> ignoreWordSet;
     private int maxWordId = 0;
-    
-    private final String vocabFileName = EMailExtractor.MASTER_DATA_ROOT+"/Adarsh/eMailData/vocabulary.txt";
+    public static final Set<String> KNOWN_MESSAGES
+            = new HashSet<>(Arrays.asList("printing shipping labels on ebay", "fedex smart post claim details"));
+
+    private final String vocabFileName = EMailExtractor.MASTER_DATA_ROOT + "/Adarsh/eMailData/vocabulary.txt";
 
     /**
-     * WordId = 0 for ignorable words.
+     * WordId = -1 for ignorable words.
      */
-    public static final int IGNORE_WORD_ID = 0;
+    public static final int IGNORE_WORD_ID = -1;
 
     /**
      *
@@ -56,17 +53,23 @@ public class VocabularyBuilder
         vocabMap = this.loadExistingVocabulary();
         ignoreWordSet = this.LoadIgnoreWordList();
     }
-    
+
     public List<Tuple2<Integer, Integer>> getDataMapForMessage(String msgFile)
     {
         List<Tuple2<String, Integer>> counts = MapReduce.DoWordCount(msgFile);
         List<Tuple2<Integer, Integer>> wordMap = new ArrayList<>();
-        counts.stream().forEach((result)-> {wordMap.add(new Tuple2<>(this.getWordId(result._1), result._2));});
+        counts.stream().forEach((result)
+                -> 
+                {
+                    wordMap.add(new Tuple2<>(this.getWordId(result._1), result._2));
+        });
         return wordMap;
 
     }
+
     /**
      * Add a new word in vocabulary if it is not already exist.
+     *
      * @param word
      * @return 0 if word already exist else return newly generated wordId.
      */
@@ -75,18 +78,14 @@ public class VocabularyBuilder
         if (StringUtils.isNotEmpty(word))
         {
             String normalizedWord = word.toLowerCase().trim();
-            if (StringUtils.isNotEmpty(word)
-                    && normalizedWord.length() > 2
-                    && StringUtils.isAlpha(word)
-                    && !this.ignoreWordSet.contains(normalizedWord)
-                    )
+            if (this.IsValidWordForAnalysis(normalizedWord))
             {
                 if (!vocabMap.containsKey(normalizedWord))
                 {
-                    this.maxWordId++;
-                    this.vocabMap.put(normalizedWord, maxWordId);
+                    this.vocabMap.put(normalizedWord, ++maxWordId);
                     return this.maxWordId;
-                } else
+                }
+                else
                 {
                     return vocabMap.get(normalizedWord);
                 }
@@ -94,7 +93,16 @@ public class VocabularyBuilder
         }
         return VocabularyBuilder.IGNORE_WORD_ID;
     }
-    
+
+    private boolean IsValidWordForAnalysis(String normalizedWord)
+    {
+        return (KNOWN_MESSAGES.contains(normalizedWord))
+                || 
+                (StringUtils.isNotEmpty(normalizedWord)
+                    && StringUtils.isAlpha(normalizedWord)
+                    && !this.ignoreWordSet.contains(normalizedWord));
+    }
+
     /**
      *
      */
@@ -107,7 +115,7 @@ public class VocabularyBuilder
                     System.out.println(k + "," + this.vocabMap.get(k));
         });
     }
-    
+
     /**
      *
      */
@@ -115,19 +123,19 @@ public class VocabularyBuilder
     {
         try
         {
-            try (FileOutputStream fos = new FileOutputStream(vocabFileName); ObjectOutputStream oos = new ObjectOutputStream(fos))
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(vocabFileName)))
             {
                 oos.writeObject(this.vocabMap);
             }
-            Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO, 
+            Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO,
                     "Serialized HashMap data is saved. count = {0}", this.vocabMap.size());
-        } 
+        }
         catch (IOException ioe)
         {
             Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.SEVERE, null, ioe);
         }
     }
-    
+
     private Set<String> LoadIgnoreWordList()
     {
         Set<String> termList = new HashSet<>();
@@ -140,13 +148,14 @@ public class VocabularyBuilder
                 termList.add(line);
             }
             // line is not visible here.
-        } catch (IOException ex)
+        }
+        catch (IOException ex)
         {
             Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
         }
         return termList;
     }
-    
+
     private Map<String, Integer> loadExistingVocabulary()
     {
         Map<String, Integer> tempWordMap = new HashMap<>();
@@ -155,16 +164,25 @@ public class VocabularyBuilder
             File vocabFile = new File(vocabFileName);
             if (vocabFile.exists())
             {
-                try (FileInputStream fis = new FileInputStream(vocabFileName); ObjectInputStream ois = new ObjectInputStream(fis))
+                try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(vocabFileName)))
                 {
                     tempWordMap = (HashMap) ois.readObject();
                 }
                 Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO,
                         "Vocabulary loaded with existing word count = {0}", tempWordMap.size());
             }
-        } catch (IOException | ClassNotFoundException ex)
+        }
+        catch (IOException | ClassNotFoundException ex)
         {
             Logger.getLogger(VocabularyBuilder.class.getName()).log(Level.INFO, null, ex);
+        }
+        if (tempWordMap.isEmpty())
+        {
+            //Add default strings in vocabulary if vocabulary is empty
+            for (String x : KNOWN_MESSAGES)
+            {
+                tempWordMap.put(x, ++maxWordId);
+            }
         }
         return tempWordMap;
     }
