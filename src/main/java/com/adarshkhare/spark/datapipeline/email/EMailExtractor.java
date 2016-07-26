@@ -13,10 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import scala.Tuple2;
@@ -79,7 +77,7 @@ public class EMailExtractor
     {
         File file = getDataFile(messageFilePath);
         int msgCount = 0;
-       
+        int recordedWordCount = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(file)))
         {
             BufferedWriter bw = null;
@@ -92,7 +90,8 @@ public class EMailExtractor
                     if (bw != null)
                     {
                         bw.close();
-                        SaveMessageAsData(msgCount);
+                        int numRecordEntry = SaveMessageAsData(msgCount);
+                        recordedWordCount += numRecordEntry;
                     }
                     msgCount++;
                     msgFile = getMsgOutputFile(msgCount);
@@ -110,17 +109,21 @@ public class EMailExtractor
             {
                 bw.close();
                 SaveMessageAsData(msgCount);
+                int numRecordEntry = SaveMessageAsData(msgCount);
+                recordedWordCount += numRecordEntry;
             }
-            // line is not visible here.
+            Logger.getLogger(EMailExtractor.class.getName()).log(Level.INFO, 
+                    "Average number of word entry per message = {0}", ((recordedWordCount*1.0)/msgCount));
         } catch (IOException ex)
         {
             Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    private void SaveMessageAsData(int msgCount)
+    private int SaveMessageAsData(int msgCount)
     {
         File msgFile = getMsgOutputFile(msgCount);
+        int numRecordEntries = 0;
         if (msgFile.exists())
         {
             Logger.getLogger(EMailExtractor.class.getName()).log(Level.FINEST, "{0}..", msgCount);
@@ -130,14 +133,15 @@ public class EMailExtractor
                 List<Tuple2<Integer, Integer>> msgMap;
                 msgMap = vb.getDataMapForMessage(msgFile.getAbsolutePath());
                 StringBuilder messageData = new StringBuilder();
-                msgMap.stream().forEach((result)
-                        -> 
-                        {
-                            if (result._1 != VocabularyBuilder.IGNORE_WORD_ID)
-                            {
-                                messageData.append(result._1).append(":").append(result._2).append(" ");
-                            }
-                });
+                for (int i = 0; i < msgMap.size(); i++)
+                {
+                    Tuple2<Integer, Integer> result = msgMap.get(i);
+                    if (result._1 != VocabularyBuilder.IGNORE_WORD_ID)
+                    {
+                        numRecordEntries++;
+                        messageData.append(result._1).append(":").append(result._2).append(" ");
+                    }
+                }
                 File msgDir = new File(MESSAGE_DIR_ROOT, msgCount + "/");
                 File recordFile = new File(msgDir,  "dataRecord.txt");
                 bw = new BufferedWriter(new FileWriter(recordFile));
@@ -149,6 +153,7 @@ public class EMailExtractor
                 Logger.getLogger(EMailExtractor.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        return numRecordEntries;
     }
 
     private static File getMsgOutputFile(int msgCount)

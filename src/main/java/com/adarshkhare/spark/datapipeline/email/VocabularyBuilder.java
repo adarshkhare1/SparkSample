@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang.StringUtils;
 import scala.Tuple2;
 
 /**
@@ -72,19 +72,21 @@ public class VocabularyBuilder
      */
     private int getWordId(String word)
     {
-        String normalizedWord = word.toLowerCase();
-        if (!this.ignoreWordSet.contains(normalizedWord) 
-                && !NumberUtils.isNumber(normalizedWord))
+        if (StringUtils.isNotEmpty(word))
         {
-            if (!vocabMap.containsKey(normalizedWord))
+            String normalizedWord = word.toLowerCase();
+            if (StringUtils.isAlpha(word)
+                    && !this.ignoreWordSet.contains(normalizedWord))
             {
-                this.maxWordId++;
-                this.vocabMap.put(normalizedWord, maxWordId);
-                return this.maxWordId;
-            } 
-            else
-            {
-                return vocabMap.get(normalizedWord);
+                if (!vocabMap.containsKey(normalizedWord))
+                {
+                    this.maxWordId++;
+                    this.vocabMap.put(normalizedWord, maxWordId);
+                    return this.maxWordId;
+                } else
+                {
+                    return vocabMap.get(normalizedWord);
+                }
             }
         }
         return VocabularyBuilder.IGNORE_WORD_ID;

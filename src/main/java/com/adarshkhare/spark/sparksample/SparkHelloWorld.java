@@ -10,11 +10,9 @@ import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import scala.Tuple2;
 
 
 /**
@@ -35,10 +33,10 @@ public class SparkHelloWorld
                     SparkHelloWorld.convertMessageFileToDataRecords();
                     break;
                 case "2":
-                    SparkHelloWorld.PopulateVocabulary();
-                    break;
+                   SparkHelloWorld.PrintVocabulary();
+                   break;
                 default:
-                    SparkHelloWorld.PopulateVocabulary();
+                    SparkHelloWorld.PrintVocabulary();
                     break;
             }
 
@@ -57,21 +55,12 @@ public class SparkHelloWorld
         
     }
     
-    private static void PopulateVocabulary()
+    private static void PrintVocabulary()
     {
-        String inputFile = "/Adarsh/eMailData/eMailSamples/1.txt";
         VocabularyBuilder vb = new VocabularyBuilder();
         vb.PrintVocabulary();
-        List<Tuple2<Integer, Integer>> counts = vb.getDataMapForMessage(inputFile);
-        counts.forEach((result)
-                -> 
-                {
-                     System.out.println(result._1 +":"+result._2);
-        });
         //vb.SaveVocabulary();
     }
-
-   
 
     private static String waitForEnterKey(String promptMessage)
     {
