@@ -7,11 +7,13 @@ package com.adarshkhare.spark.algorithm;
 
 import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import scala.Tuple2;
 
 /**
@@ -50,18 +52,17 @@ public class MapReduce
             );
 
             JavaRDD<String> words;
-            words = input.flatMap((String x)
-                    -> 
-                    {
-                        String normalizedLine = x.trim().toLowerCase();
-                        if (VocabularyBuilder.KNOWN_MESSAGES.contains(normalizedLine))
-                        {
-                            return Arrays.asList(normalizedLine);
-                        }
-                        else
-                        {
-                            return Arrays.asList(normalizedLine.split("[\\p{Punct}\\s]+"));
-                        }
+            words = input.flatMap((String x) ->
+            {
+                String normalizedLine = x.trim().toLowerCase();
+                if (VocabularyBuilder.KNOWN_MESSAGES.contains(normalizedLine))
+                {
+                    return Arrays.asList(normalizedLine).iterator();
+                }
+                else
+                {
+                    return Arrays.asList(normalizedLine.split("[\\p{Punct}\\s]+")).iterator();
+                }
             });
             // Transform into word and count.
             JavaPairRDD<String, Integer> counts = words.mapToPair((String x) -> new Tuple2(x, 1));
