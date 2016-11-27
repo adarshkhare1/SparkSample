@@ -7,12 +7,10 @@ package com.adarshkhare.spark.sparksample;
 
 import com.adarshkhare.spark.datapipeline.email.EMailExtractor;
 import com.adarshkhare.spark.datapipeline.email.VocabularyBuilder;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -72,7 +70,7 @@ public class SparkHelloWorld
         } 
         catch (IOException ex)
         {
-            Logger.getLogger("SparkSample").log(Level.FATAL, null, ex);
+            Logger.getLogger("SparkSample").log(Level.SEVERE, null, ex);
         }
         return StringUtils.EMPTY;
     }
