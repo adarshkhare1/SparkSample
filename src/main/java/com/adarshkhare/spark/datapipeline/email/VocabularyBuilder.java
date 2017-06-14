@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.adarshkhare.spark.algorithm.PhoneticsMatcher;
 import org.apache.commons.lang.StringUtils;
 import scala.Tuple2;
 
@@ -65,7 +66,7 @@ public class VocabularyBuilder
     {
         if (StringUtils.isNotEmpty(word))
         {
-            String normalizedWord = word.toLowerCase().trim();
+            String normalizedWord = this.normalizeWord(word);
             if (this.IsValidWordForAnalysis(normalizedWord))
             {
                 if (!vocabMap.containsKey(normalizedWord))
@@ -80,6 +81,11 @@ public class VocabularyBuilder
             }
         }
         return VocabularyBuilder.IGNORE_WORD_ID;
+    }
+
+    private String normalizeWord(String word)
+    {
+        return PhoneticsMatcher.GetPhoneticsCode(word.toLowerCase().trim());
     }
 
     private boolean IsValidWordForAnalysis(String normalizedWord)
